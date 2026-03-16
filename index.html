@@ -31,6 +31,7 @@ body{
 @keyframes confettiDrop{0%{transform:translateY(-10px) rotate(0) scale(1);opacity:1}100%{transform:translateY(calc(100vh + 20px)) rotate(var(--rot)) scale(.4);opacity:0}}
 @keyframes celebPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
 @keyframes particle{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--px),var(--py)) scale(0);opacity:0}}
+@keyframes dotPulse{0%,100%{opacity:.3}50%{opacity:1}}
 
 .bg{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
 .bg-orb{position:absolute;border-radius:50%;filter:blur(100px)}
@@ -46,6 +47,15 @@ body{
 .confetti-layer{position:fixed;inset:0;pointer-events:none;z-index:100;overflow:hidden}
 .confetti-piece{position:absolute;top:-20px;animation:confettiDrop var(--dur) var(--del) cubic-bezier(.25,.46,.45,.94) forwards}
 .particle{position:absolute;border-radius:50%;animation:particle .6s cubic-bezier(.25,.46,.45,.94) forwards;pointer-events:none;z-index:50}
+
+/* loading screen */
+.loading{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s}
+.loading.hide{opacity:0;pointer-events:none}
+.loading-dots{display:flex;gap:6px}
+.loading-dot{width:8px;height:8px;border-radius:50%;background:var(--pink);animation:dotPulse 1.2s ease-in-out infinite}
+.loading-dot:nth-child(2){animation-delay:.2s}
+.loading-dot:nth-child(3){animation-delay:.4s}
+.loading-text{font-size:13px;color:var(--text3);font-weight:400}
 
 .header{padding:env(safe-area-inset-top,28px) 24px 0;padding-top:max(28px,env(safe-area-inset-top))}
 .greet{font-size:13px;font-weight:400;color:var(--text3);letter-spacing:.05em}
@@ -130,7 +140,6 @@ body{
 .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .cal-nav-btn{background:none;border:1px solid rgba(255,255,255,.06);color:var(--text2);width:32px;height:32px;border-radius:10px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .2s;outline:none}
 .cal-nav-btn:active{transform:scale(.9)}
-.cal-nav-btn:hover{border-color:rgba(255,77,109,.2);color:var(--blush)}
 .cal-nav-btn.hidden{visibility:hidden}
 .cal-month{font-size:13px;font-weight:600;color:var(--text2);text-transform:capitalize}
 .cg{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
@@ -150,6 +159,14 @@ body{
 </style>
 </head>
 <body>
+
+<!-- Loading screen -->
+<div class="loading" id="loader">
+  <div class="loading-dots">
+    <div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div>
+  </div>
+  <div class="loading-text">загрузка данных...</div>
+</div>
 
 <div class="bg">
   <div class="bg-orb a"></div><div class="bg-orb b"></div><div class="bg-orb c"></div>
@@ -174,22 +191,17 @@ body{
 </div>
 
 <script>
-/* ═══ TELEGRAM WEBAPP INIT ═══ */
-const tg = window.Telegram?.WebApp;
-if(tg){
-  tg.ready();
-  tg.expand();
-  tg.setHeaderColor('#08060A');
-  tg.setBackgroundColor('#08060A');
-  if(tg.HapticFeedback) tg.disableVerticalSwipes?.();
-}
-function haptic(type){
-  if(tg?.HapticFeedback){
-    if(type==='light') tg.HapticFeedback.impactOccurred('light');
-    else if(type==='success') tg.HapticFeedback.notificationOccurred('success');
-    else if(type==='medium') tg.HapticFeedback.impactOccurred('medium');
-  }
-}
+/* ═══ TELEGRAM INIT ═══ */
+const tg=window.Telegram?.WebApp;
+if(tg){tg.ready();tg.expand();tg.setHeaderColor('#08060A');tg.setBackgroundColor('#08060A');tg.disableVerticalSwipes?.()}
+function haptic(t){if(tg?.HapticFeedback){t==='success'?tg.HapticFeedback.notificationOccurred('success'):tg.HapticFeedback.impactOccurred(t||'light')}}
+const cloud=tg?.CloudStorage||null;
+
+/* ═══ STORAGE LAYER ═══
+   Data stored per-month: key "m-2026-03" → { "17": { "workout": true, ... }, "18": {...} }
+   Each month ≤ ~2KB, well within CloudStorage 4096 byte limit per key.
+   In-memory: D = { "2026-03-17": { "workout": true }, ... } (flat, like before)
+*/
 
 const H=[
   {id:"workout",i:"🏋️‍♀️",l:"workout"},
@@ -214,13 +226,150 @@ const MOTIVS=[
 
 const lk=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const tk=()=>lk(new Date());
+const monthKey=dateStr=>{const[y,m]=dateStr.split('-');return`m-${y}-${m}`};
 
-let D={};try{D=JSON.parse(localStorage.getItem("ht3"))||{}}catch(e){}
-const save=()=>localStorage.setItem("ht3",JSON.stringify(D));
+let D={};
 let tab="today",prevAllDone=false;
 let calYear,calMonth;
 {const n=new Date();calYear=n.getFullYear();calMonth=n.getMonth()}
 
+/* ─── Cloud helpers ─── */
+function cloudGet(key){
+  return new Promise(res=>{
+    if(!cloud)return res(null);
+    cloud.getItem(key,(err,val)=>res(err?null:val));
+  });
+}
+function cloudSet(key,val){
+  return new Promise(res=>{
+    if(!cloud)return res(false);
+    cloud.setItem(key,val,(err,ok)=>res(!err));
+  });
+}
+function cloudGetKeys(){
+  return new Promise(res=>{
+    if(!cloud)return res([]);
+    cloud.getKeys((err,keys)=>res(err?[]:keys));
+  });
+}
+function cloudGetItems(keys){
+  return new Promise(res=>{
+    if(!cloud)return res({});
+    cloud.getItems(keys,(err,vals)=>res(err?{}:vals));
+  });
+}
+
+/* ─── Convert between flat D and monthly storage ─── */
+function monthDataToFlat(mKey,monthData){
+  // mKey = "m-2026-03", monthData = { "17": {...}, "18": {...} }
+  const[,y,m]=mKey.split('-');
+  const entries={};
+  for(const day of Object.keys(monthData)){
+    const fullKey=`${y}-${m}-${String(day).padStart(2,'0')}`;
+    entries[fullKey]=monthData[day];
+  }
+  return entries;
+}
+
+function flatToMonth(dateStr,dayData){
+  // returns { dayNum: dayData } for storage
+  const day=parseInt(dateStr.split('-')[2],10);
+  return {[day]:dayData};
+}
+
+/* ─── Save one day to cloud ─── */
+async function saveDay(dateStr){
+  const mKey=monthKey(dateStr);
+  const day=parseInt(dateStr.split('-')[2],10);
+
+  // Get existing month data from cloud
+  let monthData={};
+  const raw=await cloudGet(mKey);
+  if(raw){try{monthData=JSON.parse(raw)}catch(e){}}
+
+  // Update the day
+  if(D[dateStr]&&Object.values(D[dateStr]).some(Boolean)){
+    // Compact: only store true values
+    const compact={};
+    for(const[k,v]of Object.entries(D[dateStr])){if(v)compact[k]=1}
+    monthData[day]=compact;
+  } else {
+    delete monthData[day];
+  }
+
+  // Save back
+  const json=JSON.stringify(monthData);
+  const ok=await cloudSet(mKey,json);
+
+  // Also mirror to localStorage as backup
+  try{localStorage.setItem(mKey,json)}catch(e){}
+
+  return ok;
+}
+
+/* ─── Load all data ─── */
+async function loadAll(){
+  if(cloud){
+    // Get all keys from cloud
+    const keys=await cloudGetKeys();
+    const mKeys=keys.filter(k=>k.startsWith('m-'));
+
+    if(mKeys.length>0){
+      const items=await cloudGetItems(mKeys);
+      for(const mKey of mKeys){
+        const raw=items[mKey];
+        if(raw){
+          try{
+            const monthData=JSON.parse(raw);
+            Object.assign(D,monthDataToFlat(mKey,monthData));
+          }catch(e){}
+        }
+      }
+    }
+  } else {
+    // Fallback: try localStorage month keys
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(key&&key.startsWith('m-')){
+        try{
+          const monthData=JSON.parse(localStorage.getItem(key));
+          Object.assign(D,monthDataToFlat(key,monthData));
+        }catch(e){}
+      }
+    }
+
+    // Also check legacy "ht3" key for migration
+    try{
+      const legacy=JSON.parse(localStorage.getItem('ht3'));
+      if(legacy&&typeof legacy==='object'){
+        for(const[k,v]of Object.entries(legacy)){
+          if(!D[k]&&v&&typeof v==='object')D[k]=v;
+        }
+        // Migrate legacy data to monthly format
+        for(const[dateStr,dayData]of Object.entries(legacy)){
+          const mKey=monthKey(dateStr);
+          const day=parseInt(dateStr.split('-')[2],10);
+          let monthData={};
+          try{monthData=JSON.parse(localStorage.getItem(mKey))||{}}catch(e){}
+          const compact={};
+          for(const[hid,val]of Object.entries(dayData)){if(val)compact[hid]=1}
+          if(Object.keys(compact).length)monthData[day]=compact;
+          localStorage.setItem(mKey,JSON.stringify(monthData));
+        }
+        localStorage.removeItem('ht3');
+      }
+    }catch(e){}
+  }
+
+  // Expand compact format (1 → true)
+  for(const k of Object.keys(D)){
+    for(const hid of Object.keys(D[k])){
+      if(D[k][hid]===1)D[k][hid]=true;
+    }
+  }
+}
+
+/* ═══ HELPERS ═══ */
 const cnt=k=>D[k]?Object.values(D[k]).filter(Boolean).length:0;
 function getWeek(){
   const n=new Date(),dow=n.getDay(),m=new Date(n);
@@ -287,11 +436,15 @@ function sparks(btn){
   }
 }
 
+/* ═══ TOGGLE ═══ */
 function toggle(id,ev){
   const k=tk();
   if(!D[k])D[k]={};
   const wasOff=!D[k][id];
-  D[k][id]=!D[k][id];save();
+  D[k][id]=!D[k][id];
+
+  // Save to cloud (async, non-blocking)
+  saveDay(k);
 
   if(wasOff){haptic('medium');if(ev){const btn=ev.currentTarget||ev.target.closest('.h-btn');if(btn)sparks(btn)}}
   else{haptic('light')}
@@ -336,6 +489,7 @@ function toggle(id,ev){
   prevAllDone=all;
 }
 
+/* ═══ BUILD TODAY ═══ */
 function buildToday(){
   const k=tk(),td=D[k]||{},done=H.filter(h=>td[h.id]).length;
   const total=H.length,pct=done/total,all=done===total;
@@ -431,7 +585,6 @@ function buildStats(){
       </div>
       <div class="cg">`;
   DN.forEach(d=>html+=`<div class="cg-h">${d}</div>`);
-
   getMDays(calYear,calMonth).forEach(d=>{
     if(!d){html+=`<div></div>`;return}
     const dk=lk(d),c=cnt(dk),isT=dk===tkey;
@@ -447,7 +600,13 @@ function buildStats(){
   document.getElementById("p-stats").innerHTML=html;
 }
 
-buildToday();
+/* ═══ INIT ═══ */
+(async()=>{
+  await loadAll();
+  document.getElementById("loader").classList.add("hide");
+  setTimeout(()=>document.getElementById("loader").style.display='none',500);
+  buildToday();
+})();
 </script>
 </body>
 </html>
