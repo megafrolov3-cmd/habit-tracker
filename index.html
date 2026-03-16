@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>daily rituals ✦</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#08060A;
+  --card:rgba(255,255,255,.025);
+  --card-border:rgba(255,255,255,.04);
+  --pink:#FF4D6D;--rose:#FF758F;--blush:#FF8FA3;--light:#FFB3C1;--pale:#FFDCE5;
+  --text:rgba(255,255,255,.85);--text2:rgba(255,255,255,.45);--text3:rgba(255,255,255,.2);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--bg)}
+body{
+  background:var(--bg);color:#fff;font-family:'Inter',system-ui,sans-serif;
+  min-height:100vh;min-height:100dvh;overflow-x:hidden;
+  -webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased;
+}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes popCheck{0%{transform:scale(0) rotate(-30deg)}60%{transform:scale(1.2) rotate(5deg)}100%{transform:scale(1) rotate(0)}}
+@keyframes glow{0%,100%{opacity:.3}50%{opacity:.55}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:.6}50%{transform:scale(1.08);opacity:1}}
+@keyframes ringPulse{0%,100%{filter:drop-shadow(0 0 8px rgba(255,77,109,.2))}50%{filter:drop-shadow(0 0 20px rgba(255,77,109,.4))}}
+@keyframes confettiDrop{0%{transform:translateY(-10px) rotate(0) scale(1);opacity:1}100%{transform:translateY(calc(100vh + 20px)) rotate(var(--rot)) scale(.4);opacity:0}}
+@keyframes celebPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+@keyframes particle{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--px),var(--py)) scale(0);opacity:0}}
+
+.bg{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.bg-orb{position:absolute;border-radius:50%;filter:blur(100px)}
+.bg-orb.a{width:350px;height:350px;background:radial-gradient(circle,#E8364830,#E8364808,transparent);top:-120px;right:-100px;animation:glow 8s ease-in-out infinite}
+.bg-orb.b{width:280px;height:280px;background:radial-gradient(circle,#FF6B8A20,#FF6B8A05,transparent);bottom:10%;left:-100px;animation:glow 10s ease-in-out infinite 3s}
+.bg-orb.c{width:200px;height:200px;background:radial-gradient(circle,#C4254518,transparent);top:45%;left:60%;animation:glow 12s ease-in-out infinite 5s}
+.bg-mesh{position:absolute;inset:0;opacity:.012;background-image:linear-gradient(rgba(255,77,109,.3) 1px,transparent 1px),linear-gradient(90deg,rgba(255,77,109,.3) 1px,transparent 1px);background-size:60px 60px}
+.bg-grain{position:absolute;inset:0;opacity:.025;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:200px 200px}
+.bg-vignette{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 40%,var(--bg) 100%)}
+
+.wrap{position:relative;z-index:2;max-width:440px;margin:0 auto;padding-bottom:95px;min-height:100vh}
+
+.confetti-layer{position:fixed;inset:0;pointer-events:none;z-index:100;overflow:hidden}
+.confetti-piece{position:absolute;top:-20px;animation:confettiDrop var(--dur) var(--del) cubic-bezier(.25,.46,.45,.94) forwards}
+.particle{position:absolute;border-radius:50%;animation:particle .6s cubic-bezier(.25,.46,.45,.94) forwards;pointer-events:none;z-index:50}
+
+.header{padding:env(safe-area-inset-top,28px) 24px 0;padding-top:max(28px,env(safe-area-inset-top))}
+.greet{font-size:13px;font-weight:400;color:var(--text3);letter-spacing:.05em}
+.date{margin-top:5px;font-size:14px;font-weight:500;color:var(--text2);text-transform:capitalize}
+
+.hero{display:flex;align-items:center;gap:24px;padding:28px 24px 0}
+.ring-box{position:relative;width:120px;height:120px;flex-shrink:0}
+.ring-svg{width:120px;height:120px;transform:rotate(-90deg);transition:filter .5s}
+.ring-bg{fill:none;stroke:rgba(255,255,255,.04);stroke-width:6}
+.ring-bar{fill:none;stroke:url(#rg);stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset .8s cubic-bezier(.34,1.56,.64,1);filter:drop-shadow(0 0 10px rgba(255,77,109,.25))}
+.ring-glow{fill:none;stroke:url(#rg);stroke-width:10;stroke-linecap:round;opacity:.15;transition:stroke-dashoffset .8s cubic-bezier(.34,1.56,.64,1);filter:blur(4px)}
+.ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring-n{font-family:'Playfair Display',serif;font-size:38px;font-weight:700;color:#fff;line-height:1;transition:all .3s}
+.ring-d{font-size:11px;font-weight:500;color:var(--text3);margin-top:3px}
+.hero-right{flex:1;display:flex;flex-direction:column;gap:6px}
+.hero-msg{font-size:17px;font-weight:600;color:var(--text);line-height:1.35;transition:all .3s}
+.hero-sub{font-size:12px;color:var(--text3);font-weight:400;line-height:1.4;transition:all .3s}
+
+.pills{display:flex;gap:8px;padding:22px 20px 0}
+.pill{flex:1;padding:16px 8px;border-radius:18px;text-align:center;background:var(--card);border:1px solid var(--card-border);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);transition:all .3s}
+.pill-n{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--blush);line-height:1;transition:all .3s}
+.pill-l{font-size:9px;font-weight:600;color:var(--text3);margin-top:6px;letter-spacing:.08em;text-transform:uppercase}
+
+.motiv{margin:18px 20px 0;padding:16px 18px;background:linear-gradient(135deg,rgba(255,77,109,.05),rgba(255,179,193,.02));border:1px solid rgba(255,77,109,.08);border-radius:18px;display:flex;align-items:center;gap:14px;transition:all .4s}
+.motiv-i{font-size:24px;animation:float 4s ease-in-out infinite;flex-shrink:0}
+.motiv-t{font-size:13px;font-weight:400;color:var(--text2);line-height:1.5;font-style:italic}
+.celeb{margin:18px 20px 0;padding:22px;text-align:center;background:linear-gradient(135deg,rgba(255,77,109,.1),rgba(255,179,193,.04));border:1px solid rgba(255,77,109,.15);border-radius:22px;position:relative;overflow:hidden;animation:celebPulse 3s ease-in-out infinite}
+.celeb-glow{position:absolute;inset:-40%;border-radius:50%;background:radial-gradient(circle,rgba(255,77,109,.08),transparent 60%);animation:pulse 4s ease-in-out infinite;pointer-events:none}
+.celeb-e{font-size:40px;position:relative;z-index:1;animation:float 3s ease-in-out infinite}
+.celeb-t{font-size:16px;font-weight:600;color:var(--text);margin-top:10px;position:relative;z-index:1}
+.celeb-s{font-size:12px;color:var(--text3);margin-top:5px;position:relative;z-index:1}
+
+.sec-title{padding:26px 24px 14px;font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.14em;text-transform:uppercase}
+.habits{display:flex;flex-direction:column;gap:3px;padding:0 14px}
+.h-btn{display:flex;align-items:center;gap:14px;padding:15px 18px;width:100%;border-radius:18px;cursor:pointer;border:1px solid transparent;outline:none;background:var(--card);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:background .35s,border-color .35s,transform .15s;position:relative;overflow:hidden}
+.h-btn:active{transform:scale(.975)}
+.h-btn.on{background:linear-gradient(135deg,rgba(255,77,109,.08),rgba(255,143,163,.03));border-color:rgba(255,77,109,.12)}
+.h-btn::before{content:'';position:absolute;left:0;top:15%;bottom:15%;width:3px;background:linear-gradient(to bottom,var(--pink),var(--blush));border-radius:0 4px 4px 0;transform:scaleY(0);transition:transform .35s cubic-bezier(.4,0,.2,1)}
+.h-btn.on::before{transform:scaleY(1)}
+.h-ico{width:42px;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:20px;background:rgba(255,255,255,.03);flex-shrink:0;transition:all .35s cubic-bezier(.4,0,.2,1)}
+.h-btn.on .h-ico{background:rgba(255,77,109,.1);transform:scale(1.05)}
+.h-btn:not(.on) .h-ico{filter:grayscale(.45) opacity(.5)}
+.h-name{flex:1;font-size:15px;font-weight:400;color:var(--text3);letter-spacing:.015em;transition:color .3s,font-weight .3s}
+.h-btn.on .h-name{color:var(--text);font-weight:500}
+.h-chk{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(255,255,255,.08);background:transparent;transition:all .4s cubic-bezier(.34,1.56,.64,1);flex-shrink:0}
+.h-btn.on .h-chk{border:none;background:linear-gradient(135deg,var(--pink),var(--rose));box-shadow:0 3px 14px rgba(255,77,109,.35),0 0 20px rgba(255,77,109,.15);transform:scale(1.05)}
+.h-btn.on .h-chk svg{animation:popCheck .4s cubic-bezier(.34,1.56,.64,1)}
+
+.week-sec{padding:26px 14px 0}
+.week-lbl{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.14em;text-transform:uppercase;padding:0 10px 14px}
+.week-row{display:flex;gap:4px}
+.w-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px}
+.w-d{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.04em}
+.w-d.now{color:var(--rose)}
+.w-cell{width:100%;max-width:44px;aspect-ratio:1;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:rgba(255,255,255,.12);background:rgba(255,255,255,.015);border:1.5px solid transparent;transition:all .4s;position:relative;overflow:hidden}
+.w-cell.now{border-color:rgba(255,77,109,.25)}
+.w-cell.has{color:rgba(255,255,255,.8)}
+.w-cell-fill{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,rgba(255,77,109,.25),rgba(255,77,109,.05));border-radius:0 0 12px 12px;transition:height .5s cubic-bezier(.4,0,.2,1);pointer-events:none}
+.w-cell-num{position:relative;z-index:1}
+.w-bar{width:100%;max-width:44px;height:3px;border-radius:3px;background:rgba(255,255,255,.03);overflow:hidden;margin-top:2px}
+.w-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--pink),var(--blush));transform-origin:left;transition:transform .6s cubic-bezier(.4,0,.2,1)}
+
+.bnav{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;gap:6px;padding:12px 28px calc(12px + env(safe-area-inset-bottom,0px));background:linear-gradient(to top,var(--bg) 40%,rgba(8,6,10,.9) 80%,transparent);z-index:10}
+.nb{flex:1;max-width:140px;padding:10px 0 8px;background:transparent;border:1px solid transparent;border-radius:16px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;transition:all .3s;outline:none;color:var(--text3)}
+.nb.on{background:rgba(255,77,109,.06);border-color:rgba(255,77,109,.1);color:var(--blush)}
+.nb-i{font-size:16px}.nb-t{font-size:9px;font-weight:700;letter-spacing:.06em}
+
+.st-wrap{padding:6px 14px 20px;display:flex;flex-direction:column;gap:12px}
+.st-card{background:var(--card);border-radius:22px;padding:22px 20px;border:1px solid var(--card-border);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.st-h{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.12em;text-transform:uppercase;margin-bottom:18px}
+.big-n{text-align:center;padding:4px 0;font-family:'Playfair Display',serif;font-size:54px;font-weight:700;line-height:1;background:linear-gradient(135deg,var(--pink),var(--blush),var(--light));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.big-s{text-align:center;font-size:12px;color:var(--text3);margin-top:6px}
+.br{display:flex;align-items:center;gap:12px;padding:7px 0}
+.br-e{font-size:18px;flex-shrink:0}
+.br-info{flex:1;display:flex;flex-direction:column;gap:5px}
+.br-top{display:flex;justify-content:space-between}
+.br-nm{font-size:13px;color:var(--text2);font-weight:400}
+.br-pc{font-size:11px;font-weight:700;color:var(--text3)}
+.br-track{height:4px;border-radius:4px;background:rgba(255,255,255,.035);overflow:hidden}
+.br-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--pink),var(--rose));transition:width .7s cubic-bezier(.4,0,.2,1)}
+
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.cal-nav-btn{background:none;border:1px solid rgba(255,255,255,.06);color:var(--text2);width:32px;height:32px;border-radius:10px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .2s;outline:none}
+.cal-nav-btn:active{transform:scale(.9)}
+.cal-nav-btn:hover{border-color:rgba(255,77,109,.2);color:var(--blush)}
+.cal-nav-btn.hidden{visibility:hidden}
+.cal-month{font-size:13px;font-weight:600;color:var(--text2);text-transform:capitalize}
+.cg{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cg-h{text-align:center;font-size:9px;font-weight:700;color:var(--text3);padding-bottom:6px;letter-spacing:.04em}
+.cg-c{aspect-ratio:1;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;border:1.5px solid transparent;transition:all .3s;position:relative;overflow:hidden;background:rgba(255,255,255,.015)}
+.cg-c.past{background:rgba(255,255,255,.02)}
+.cg-c.today{border-color:rgba(255,77,109,.35)}
+.cg-c.future{background:rgba(255,255,255,.008)}
+.cg-c-fill{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,rgba(255,77,109,.35),rgba(255,77,109,.08));border-radius:0 0 8px 8px;transition:height .5s cubic-bezier(.4,0,.2,1);pointer-events:none}
+.cg-c.full .cg-c-fill{background:linear-gradient(to top,rgba(255,77,109,.45),rgba(255,143,163,.15));border-radius:8px}
+.cg-c-num{position:relative;z-index:1;transition:color .3s}
+.cg-c.has .cg-c-num{color:rgba(255,255,255,.8)}
+.cg-c:not(.has) .cg-c-num{color:rgba(255,255,255,.1)}
+.cg-c.full .cg-c-num{color:#fff;font-weight:700}
+
+.page{display:none}.page.active{display:block}
+</style>
+</head>
+<body>
+
+<div class="bg">
+  <div class="bg-orb a"></div><div class="bg-orb b"></div><div class="bg-orb c"></div>
+  <div class="bg-mesh"></div><div class="bg-grain"></div><div class="bg-vignette"></div>
+</div>
+<div class="confetti-layer" id="confetti"></div>
+
+<svg width="0" height="0" style="position:absolute"><defs>
+  <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#E83648"/><stop offset="50%" stop-color="#FF6B8A"/><stop offset="100%" stop-color="#FFB3C1"/>
+  </linearGradient>
+</defs></svg>
+
+<div class="wrap">
+  <div class="page active" id="p-today"></div>
+  <div class="page" id="p-stats"></div>
+</div>
+
+<div class="bnav">
+  <button class="nb on" data-t="today" onclick="go('today')"><span class="nb-i">✦</span><span class="nb-t">сегодня</span></button>
+  <button class="nb" data-t="stats" onclick="go('stats')"><span class="nb-i">◆</span><span class="nb-t">статистика</span></button>
+</div>
+
+<script>
+/* ═══ TELEGRAM WEBAPP INIT ═══ */
+const tg = window.Telegram?.WebApp;
+if(tg){
+  tg.ready();
+  tg.expand();
+  tg.setHeaderColor('#08060A');
+  tg.setBackgroundColor('#08060A');
+  if(tg.HapticFeedback) tg.disableVerticalSwipes?.();
+}
+function haptic(type){
+  if(tg?.HapticFeedback){
+    if(type==='light') tg.HapticFeedback.impactOccurred('light');
+    else if(type==='success') tg.HapticFeedback.notificationOccurred('success');
+    else if(type==='medium') tg.HapticFeedback.impactOccurred('medium');
+  }
+}
+
+const H=[
+  {id:"workout",i:"🏋️‍♀️",l:"workout"},
+  {id:"create",i:"🎨",l:"create"},
+  {id:"read",i:"📖",l:"read"},
+  {id:"skincare",i:"🧴",l:"skincare"},
+  {id:"vitamins",i:"💊",l:"vitamins"},
+  {id:"outside",i:"🌿",l:"30+ min outside"},
+  {id:"journaling",i:"✍️",l:"journaling"},
+];
+const DN=["пн","вт","ср","чт","пт","сб","вс"];
+const MN=["январь","февраль","март","апрель","май","июнь","июль","август","сентябрь","октябрь","ноябрь","декабрь"];
+const MOTIVS=[
+  {i:"🌸",t:"маленькие шаги каждый день создают большие перемены"},
+  {i:"🦋",t:"забота о себе — это не роскошь, а необходимость"},
+  {i:"✨",t:"ты уже здесь — значит, день не прошёл зря"},
+  {i:"🌙",t:"каждая отметка — маленькое обещание самой себе"},
+  {i:"🫧",t:"не идеально, но стабильно — и это прекрасно"},
+  {i:"🪷",t:"будь нежна с собой — ты делаешь больше, чем кажется"},
+  {i:"💫",t:"рутина — это суперсила. просто продолжай"},
+];
+
+const lk=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const tk=()=>lk(new Date());
+
+let D={};try{D=JSON.parse(localStorage.getItem("ht3"))||{}}catch(e){}
+const save=()=>localStorage.setItem("ht3",JSON.stringify(D));
+let tab="today",prevAllDone=false;
+let calYear,calMonth;
+{const n=new Date();calYear=n.getFullYear();calMonth=n.getMonth()}
+
+const cnt=k=>D[k]?Object.values(D[k]).filter(Boolean).length:0;
+function getWeek(){
+  const n=new Date(),dow=n.getDay(),m=new Date(n);
+  m.setDate(n.getDate()-((dow+6)%7));m.setHours(0,0,0,0);
+  return Array.from({length:7},(_,i)=>{const d=new Date(m);d.setDate(m.getDate()+i);return d});
+}
+function getMDays(y,mo){
+  const f=new Date(y,mo,1),la=new Date(y,mo+1,0);
+  const pad=(f.getDay()+6)%7,a=[];
+  for(let i=0;i<pad;i++)a.push(null);
+  for(let d=1;d<=la.getDate();d++)a.push(new Date(y,mo,d));
+  return a;
+}
+function streak(){
+  let s=0,d=new Date();d.setHours(12,0,0,0);
+  while(cnt(lk(d))===H.length){s++;d.setDate(d.getDate()-1)}
+  return s;
+}
+function weekPct(){
+  const w=getWeek(),n=new Date();n.setHours(23,59,59);
+  let t=0,d=0;
+  w.forEach(day=>{if(day<=n){t+=H.length;d+=cnt(lk(day))}});
+  return t?Math.round(d/t*100):0;
+}
+function todayPct(){return Math.round(cnt(tk())/H.length*100)}
+function hMonthPct(hid){
+  const n=new Date(),y=n.getFullYear(),m=n.getMonth();
+  let t=0,d=0;
+  for(let i=1;i<=n.getDate();i++){t++;if(D[lk(new Date(y,m,i))]?.[hid])d++}
+  return t?Math.round(d/t*100):0;
+}
+function greet(){
+  const h=new Date().getHours();
+  if(h<5)return"доброй ночи 🌙";if(h<12)return"доброе утро ☀️";
+  if(h<18)return"добрый день 🌤️";return"добрый вечер 🌙";
+}
+
+function go(t){
+  tab=t;haptic('light');
+  document.querySelectorAll(".nb").forEach(b=>b.classList.toggle("on",b.dataset.t===t));
+  document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===`p-${t}`));
+  if(t==="today")buildToday();else{const n=new Date();calYear=n.getFullYear();calMonth=n.getMonth();buildStats()}
+}
+
+function boom(){
+  const L=document.getElementById("confetti");L.innerHTML="";
+  const cols=["#FF4D6D","#FF758F","#FF8FA3","#FFB3C1","#FFDCE5","#fff","#E83648"];
+  for(let i=0;i<60;i++){
+    const e=document.createElement("div");e.className="confetti-piece";
+    e.style.cssText=`left:${Math.random()*100}%;background:${cols[Math.floor(Math.random()*cols.length)]};width:${5+Math.random()*7}px;height:${5+Math.random()*7}px;border-radius:${Math.random()>.5?'50%':'2px'};--dur:${1.8+Math.random()*2}s;--del:${Math.random()*.6}s;--rot:${600+Math.random()*600}deg;opacity:1;`;
+    L.appendChild(e);
+  }
+  setTimeout(()=>L.innerHTML="",4500);
+}
+
+function sparks(btn){
+  const r=btn.getBoundingClientRect(),cx=r.right-26,cy=r.top+r.height/2;
+  const cols=["#FF4D6D","#FF8FA3","#FFB3C1","#FFDCE5"];
+  for(let i=0;i<8;i++){
+    const e=document.createElement("div");e.className="particle";
+    const a=(Math.PI*2/8)*i+Math.random()*.4,dist=30+Math.random()*25;
+    e.style.cssText=`position:fixed;left:${cx}px;top:${cy}px;width:${4+Math.random()*4}px;height:${4+Math.random()*4}px;background:${cols[Math.floor(Math.random()*cols.length)]};--px:${Math.cos(a)*dist}px;--py:${Math.sin(a)*dist}px;`;
+    document.body.appendChild(e);setTimeout(()=>e.remove(),650);
+  }
+}
+
+function toggle(id,ev){
+  const k=tk();
+  if(!D[k])D[k]={};
+  const wasOff=!D[k][id];
+  D[k][id]=!D[k][id];save();
+
+  if(wasOff){haptic('medium');if(ev){const btn=ev.currentTarget||ev.target.closest('.h-btn');if(btn)sparks(btn)}}
+  else{haptic('light')}
+
+  const done=cnt(k),total=H.length,pct=done/total,all=done===total;
+
+  const btn=document.querySelector(`[data-hid="${id}"]`);
+  if(btn){
+    btn.classList.toggle("on",!!D[k][id]);
+    btn.querySelector(".h-chk").innerHTML=D[k][id]?'<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>':'';
+  }
+
+  const R=50,C=2*Math.PI*R,off=C-(pct*C);
+  document.querySelectorAll(".ring-bar,.ring-glow").forEach(c=>c.setAttribute("stroke-dashoffset",off));
+  const rn=document.getElementById("ring-n");if(rn)rn.textContent=done;
+  const svg=document.querySelector(".ring-svg");
+  if(svg)svg.style.animation=all?'ringPulse 2s ease-in-out infinite':'none';
+
+  let msg,sub;
+  if(all){msg='всё выполнено! 🎉';sub='идеальный день — ты умница';}
+  else if(done===0){msg='новый день — новые возможности ✨';sub='начни с любой привычки';}
+  else if(done<=3){msg='отличное начало 💪';sub=`ещё ${total-done} — и день идеален`;}
+  else{msg='почти всё! 🔥';sub=`осталось ${total-done} — ты можешь`;}
+  const hm=document.getElementById("hero-msg"),hs=document.getElementById("hero-sub");
+  if(hm)hm.innerHTML=msg;if(hs)hs.textContent=sub;
+
+  const tpEl=document.getElementById("pill-tp");if(tpEl)tpEl.textContent=todayPct()+"%";
+  const stEl=document.getElementById("pill-st");
+  if(stEl){const s=streak();stEl.textContent=s;const sl=document.getElementById("pill-st-l");if(sl)sl.textContent=s===1?'день подряд':'дней подряд'}
+
+  const banner=document.getElementById("banner");
+  if(banner){
+    if(all){banner.innerHTML=`<div class="celeb"><div class="celeb-glow"></div><div class="celeb-e">🏆</div><div class="celeb-t">все привычки выполнены!</div><div class="celeb-s">ты невероятная — продолжай завтра 💕</div></div>`;}
+    else{const mi=new Date().getDate()%MOTIVS.length,m=MOTIVS[mi];banner.innerHTML=`<div class="motiv"><span class="motiv-i">${m.i}</span><span class="motiv-t">${m.t}</span></div>`;}
+  }
+
+  const wf=document.getElementById("wfill-today");if(wf)wf.style.height=`${pct*100}%`;
+  const wc=document.getElementById("wcell-today");if(wc)wc.classList.toggle("has",done>0);
+  const wb=document.getElementById("wbar-today");if(wb)wb.style.transform=`scaleX(${pct})`;
+
+  if(all&&!prevAllDone){haptic('success');setTimeout(boom,250)}
+  prevAllDone=all;
+}
+
+function buildToday(){
+  const k=tk(),td=D[k]||{},done=H.filter(h=>td[h.id]).length;
+  const total=H.length,pct=done/total,all=done===total;
+  prevAllDone=all;
+  const now=new Date(),ds=now.toLocaleDateString("ru-RU",{weekday:"long",day:"numeric",month:"long"});
+  const st=streak(),mi=now.getDate()%MOTIVS.length,m=MOTIVS[mi];
+  const R=50,C=2*Math.PI*R,off=C-(pct*C);
+
+  let msg,sub;
+  if(all){msg='всё выполнено! 🎉';sub='идеальный день — ты умница';}
+  else if(done===0){msg='новый день — новые возможности ✨';sub='начни с любой привычки';}
+  else if(done<=3){msg='отличное начало 💪';sub=`ещё ${total-done} — и день идеален`;}
+  else{msg='почти всё! 🔥';sub=`осталось ${total-done} — ты можешь`;}
+
+  let html=`
+  <div class="header" style="animation:fadeUp .4s both"><div class="greet">${greet()}</div><div class="date">${ds}</div></div>
+  <div class="hero" style="animation:fadeUp .45s .05s both">
+    <div class="ring-box">
+      <svg class="ring-svg" viewBox="0 0 120 120"${all?' style="animation:ringPulse 2s ease-in-out infinite"':''}>
+        <circle class="ring-bg" cx="60" cy="60" r="${R}"/>
+        <circle class="ring-glow" cx="60" cy="60" r="${R}" stroke-dasharray="${C}" stroke-dashoffset="${off}"/>
+        <circle class="ring-bar" cx="60" cy="60" r="${R}" stroke-dasharray="${C}" stroke-dashoffset="${off}"/>
+      </svg>
+      <div class="ring-center"><div class="ring-n" id="ring-n">${done}</div><div class="ring-d">из ${total}</div></div>
+    </div>
+    <div class="hero-right"><div class="hero-msg" id="hero-msg">${msg}</div><div class="hero-sub" id="hero-sub">${sub}</div></div>
+  </div>
+  <div class="pills" style="animation:fadeUp .4s .1s both">
+    <div class="pill"><div class="pill-n" id="pill-tp">${todayPct()}%</div><div class="pill-l">сегодня</div></div>
+    <div class="pill"><div class="pill-n" id="pill-st">${st}</div><div class="pill-l" id="pill-st-l">${st===1?'день подряд':'дней подряд'}</div></div>
+    <div class="pill"><div class="pill-n">${now.getDate()}</div><div class="pill-l">${MN[now.getMonth()]}</div></div>
+  </div>
+  <div id="banner" style="animation:fadeUp .4s .14s both">`;
+  if(all){html+=`<div class="celeb"><div class="celeb-glow"></div><div class="celeb-e">🏆</div><div class="celeb-t">все привычки выполнены!</div><div class="celeb-s">ты невероятная — продолжай завтра 💕</div></div>`;}
+  else{html+=`<div class="motiv"><span class="motiv-i">${m.i}</span><span class="motiv-t">${m.t}</span></div>`;}
+  html+=`</div><div class="sec-title" style="animation:fadeUp .35s .18s both">привычки</div><div class="habits">`;
+  H.forEach((h,i)=>{
+    const on=!!td[h.id];
+    html+=`<button class="h-btn${on?' on':''}" data-hid="${h.id}" onclick="toggle('${h.id}',event)" style="animation:fadeUp .35s ${200+i*45}ms both"><div class="h-ico">${h.i}</div><div class="h-name">${h.l}</div><div class="h-chk">${on?'<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}</div></button>`;
+  });
+  html+=`</div>`;
+
+  const week=getWeek(),tkey=tk();
+  html+=`<div class="week-sec" style="animation:fadeUp .35s .55s both"><div class="week-lbl">эта неделя</div><div class="week-row">`;
+  week.forEach((d,i)=>{
+    const dk=lk(d),c=cnt(dk),isT=dk===tkey,fillH=(c/H.length)*100;
+    html+=`<div class="w-col"><span class="w-d${isT?' now':''}">${DN[i]}</span>
+      <div class="w-cell${isT?' now':''}${c?' has':''}"${isT?' id="wcell-today"':''}>
+        <div class="w-cell-fill"${isT?' id="wfill-today"':''} style="height:${fillH}%"></div>
+        <span class="w-cell-num">${d.getDate()}</span>
+      </div>
+      <div class="w-bar"><div class="w-bar-fill"${isT?' id="wbar-today"':''} style="transform:scaleX(${c/H.length})"></div></div>
+    </div>`;
+  });
+  html+=`</div></div>`;
+  document.getElementById("p-today").innerHTML=html;
+}
+
+function calPrev(){calMonth--;if(calMonth<0){calMonth=11;calYear--}haptic('light');buildStats()}
+function calNext(){
+  const n=new Date();
+  if(calYear===n.getFullYear()&&calMonth>=n.getMonth())return;
+  calMonth++;if(calMonth>11){calMonth=0;calYear++}haptic('light');buildStats();
+}
+
+function buildStats(){
+  const now=new Date(),tkey=tk();
+  const ds=now.toLocaleDateString("ru-RU",{weekday:"long",day:"numeric",month:"long"});
+  const wp=weekPct();
+  const isCurrentMonth=calYear===now.getFullYear()&&calMonth===now.getMonth();
+  const canGoNext=!(calYear===now.getFullYear()&&calMonth>=now.getMonth());
+
+  let html=`
+  <div class="header" style="animation:fadeUp .4s both"><div class="greet">${greet()}</div><div class="date">${ds}</div>
+    <div style="margin-top:16px;font-size:22px;font-weight:700;color:var(--text)">статистика</div>
+  </div>
+  <div class="st-wrap">
+    <div class="st-card" style="animation:fadeUp .35s .08s both">
+      <div class="big-n">${wp}%</div><div class="big-s">выполнение за эту неделю (пн–вс)</div>
+    </div>
+    <div class="st-card" style="animation:fadeUp .35s .16s both">
+      <div class="st-h">привычки за ${MN[now.getMonth()]}</div>`;
+  H.forEach((h,i)=>{
+    const p=hMonthPct(h.id);
+    html+=`<div class="br" style="animation:fadeUp .3s ${200+i*35}ms both"><span class="br-e">${h.i}</span><div class="br-info"><div class="br-top"><span class="br-nm">${h.l}</span><span class="br-pc">${p}%</span></div><div class="br-track"><div class="br-fill" style="width:${p}%"></div></div></div></div>`;
+  });
+  html+=`</div>
+    <div class="st-card" style="animation:fadeUp .35s .28s both">
+      <div class="cal-nav">
+        <button class="cal-nav-btn" onclick="calPrev()">‹</button>
+        <span class="cal-month">${MN[calMonth]} ${calYear}</span>
+        <button class="cal-nav-btn${!canGoNext?' hidden':''}" onclick="calNext()">›</button>
+      </div>
+      <div class="cg">`;
+  DN.forEach(d=>html+=`<div class="cg-h">${d}</div>`);
+
+  getMDays(calYear,calMonth).forEach(d=>{
+    if(!d){html+=`<div></div>`;return}
+    const dk=lk(d),c=cnt(dk),isT=dk===tkey;
+    const fillPct=(c/H.length)*100;
+    const past=isCurrentMonth?d.getDate()<=now.getDate():calYear<now.getFullYear()||(calYear===now.getFullYear()&&calMonth<now.getMonth());
+    const isFull=c===H.length;
+    let cls='cg-c';
+    if(isT)cls+=' today';if(c>0)cls+=' has';if(isFull)cls+=' full';
+    if(!past&&!isT)cls+=' future';else if(past)cls+=' past';
+    html+=`<div class="${cls}"><div class="cg-c-fill" style="height:${fillPct}%"></div><span class="cg-c-num">${d.getDate()}</span></div>`;
+  });
+  html+=`</div></div></div>`;
+  document.getElementById("p-stats").innerHTML=html;
+}
+
+buildToday();
+</script>
+</body>
+</html>
